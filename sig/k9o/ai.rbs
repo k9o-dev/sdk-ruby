@@ -1,0 +1,16 @@
+# RBS signatures for the `client.ai` namespace (platform AI primitives).
+
+module K9o
+  class Ai
+    # `input` is one string or an array of strings, sent exactly as given.
+    # `model` is omitted from the request body when nil (server default).
+    # Returns an Envelope whose `data` is
+    # { "embeddings" => Array[Array[Float]], "model" => String, "dimensions" => Integer }.
+    def initialize: (untyped config) -> void
+    def embed: (input: (String | Array[String]), ?model: String?) -> Envelope
+  end
+
+  class K9oClient
+    attr_reader ai: Ai
+  end
+end
