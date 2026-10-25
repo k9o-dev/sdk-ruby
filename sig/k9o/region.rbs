@@ -1,0 +1,19 @@
+# RBS signatures for regional host resolution (K9o::Region).
+
+module K9o
+  module Region
+    REGION_FREE_ORG_HOST: Regexp
+    REGION_CODE: Regexp
+
+    # The regional origin `location` may name for `host`, or nil.
+    def self.origin_from_location: (String host, String location, String base) -> String?
+    # The origin requests go to: cached regional origin, else the configured base URL. Never raises.
+    def self.resolve_origin: (HttpClientConfig config) -> String
+    def self.probe: (HttpClientConfig config) -> [String, bool]
+  end
+
+  class HttpClientConfig
+    attr_reader region_mutex: Thread::Mutex
+    attr_accessor regional_origin: String?
+  end
+end

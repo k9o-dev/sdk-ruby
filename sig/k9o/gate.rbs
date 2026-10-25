@@ -1,0 +1,11 @@
+# RBS signatures for the `client.gate` namespace (additions).
+
+module K9o
+  class Gate
+    # GET /@<slug>/gate/hosted. Unauthenticated (no credential sent).
+    # Returns an Envelope whose `data` is { "signInUrl" => String, "rpId" => String }.
+    # Raises KError (K9O_MISSING_PROJECT_CONTEXT) without a project slug; the
+    # uniform 404 K9O_PROJECT_NOT_FOUND for unknown org / deleted / non-Gate project.
+    def hosted: () -> Envelope
+  end
+end
