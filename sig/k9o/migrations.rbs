@@ -1,0 +1,138 @@
+# RBS signatures for the migration control-plane type model (ch13 §2.2, Ruby
+# TIER-3: documented + statically-checkable hash pass-through). These describe
+# the FIXED control-plane Operation union + its sub-shapes so steep/typeprof
+# can check migration authoring. The runtime carries plain Hashes; the wire
+# JSON matches packages/core/src/migrations.ts (snake_case keys, `searchable`
+# NESTED inside the `encrypted` object form).
+#
+# Closed-union note: RBS cannot express "exactly one key set", so the Operation
+# variants are typed as distinct single-key hash shapes and the closed-union
+# property is enforced at wire + server validation (true for every tier).
+
+module K9o
+  # The `encrypted` union: the bare `true` shorthand, or the object form with a
+  # NESTED `searchable` flag.
+  type column_encryption = { store: ("inline" | "vault"), ?searchable: bool }
+  type encrypted = (true | column_encryption)
+
+  type fk_action = ("CASCADE" | "RESTRICT" | "SET NULL" | "NO ACTION")
+
+  type column_references = {
+    collection: String,
+    on: String,
+    ?on_delete: fk_action,
+    ?on_update: fk_action,
+  }
+
+  # `type` stays a String (parser-owned vocabulary; not an enum).
+  type column_spec = {
+    name: String,
+    type: String,
+    ?primary_key: bool,
+    ?not_null: bool,
+    ?unique: bool,
+    ?default: String,
+    ?references: column_references,
+    ?encrypted: encrypted,
+    ?blind_indexed: bool,
+  }
+
+  type index_spec = {
+    ?name: String,
+    columns: Array[String],
+    ?unique: bool,
+  }
+
+  # KEY-TAGGED Operation union — EXACTLY these 6 (FROZEN at v2; rename_column is
+  # the pending 7th, intentionally absent). Each variant is a single-key hash.
+  type create_table_op = { create_table: { name: String, columns: Array[column_spec], ?indexes: Array[index_spec] } }
+  type drop_table_op   = { drop_table: String }
+  type add_column_op   = { add_column: { table: String, column: column_spec } }
+  type drop_column_op  = { drop_column: { table: String, column: String } }
+  type alter_table_op  = { alter_table: { name: String, ?add_columns: Array[column_spec], ?drop_columns: Array[String] } }
+  type create_index_op = { create_index: { table: String, index: index_spec } }
+  type drop_index_op   = { drop_index: { name: String } }
+
+  type operation = (create_table_op | drop_table_op | add_column_op | drop_column_op | alter_table_op | create_index_op | drop_index_op)
+
+  type action_rule = { ?rule: untyped }
+
+  type relationship_spec = {
+    collection: String,
+    on: String,
+    as: String,
+    ?type: ("inner" | "left"),
+  }
+
+  type collection_policy = {
+    ?references: Array[relationship_spec],
+    ?actions: { ?select: action_rule, ?insert: action_rule, ?update: action_rule, ?delete: action_rule },
+  }
+
+  type storage_bucket_policy = {
+    ?public: bool,
+    ?actions: { ?read: action_rule, ?upload: action_rule, ?delete: action_rule, ?list: action_rule },
+  }
+
+  type migration_policy = {
+    ?collections: Hash[String, collection_policy],
+    ?storage: { ?buckets: Hash[String, storage_bucket_policy] },
+  }
+
+  type migration = {
+    version: Integer,
+    slug: String,
+    up: Array[operation],
+    down: Array[operation],
+    ?policy: migration_policy,
+  }
+
+  type applied_migration = {
+    version: Integer,
+    slug: String,
+    checksum: String,
+    appliedAt: String,
+  }
+
+  type pending_migration = {
+    pendingId: String,
+    version: Integer,
+    slug: String,
+    checksum: String,
+    submittedAt: String,
+    submittedBy: String,
+  }
+
+  class Migrations
+    @config: untyped
+    def initialize: (untyped config) -> void
+    def apply: (Array[migration] migrations) -> untyped
+    def list: () -> untyped
+    def get: (untyped version) -> untyped
+    def queue: (Array[migration] migrations) -> untyped
+    def list_pending: () -> untyped
+    def apply_pending: (String pending_id) -> untyped
+    def reject_pending: (String pending_id, ?reason: String?) -> untyped
+    def delete_pending: (String pending_id) -> untyped
+
+    private
+    def require_project_slug: () -> String
+    def enc: (untyped s) -> String
+
+    # Typed keyword-arg constructors for the control-plane Operation union.
+    module Build
+      def self?.column: (name: String, type: String, ?primary_key: bool?, ?not_null: bool?, ?unique: bool?, ?default: String?, ?references: column_references?, ?encrypted: encrypted?, ?blind_indexed: bool?) -> column_spec
+      def self?.column_encryption: (store: ("inline" | "vault"), ?searchable: bool?) -> column_encryption
+      def self?.references: (collection: String, on: String, ?on_delete: fk_action?, ?on_update: fk_action?) -> column_references
+      def self?.index: (columns: Array[String], ?name: String?, ?unique: bool?) -> index_spec
+      def self?.create_table: (name: String, columns: Array[column_spec], ?indexes: Array[index_spec]?) -> create_table_op
+      def self?.drop_table: (String name) -> drop_table_op
+      def self?.add_column: (table: String, column: column_spec) -> add_column_op
+      def self?.drop_column: (table: String, column: String) -> drop_column_op
+      def self?.alter_table: (name: String, ?add_columns: Array[column_spec]?, ?drop_columns: Array[String]?) -> alter_table_op
+      def self?.create_index: (table: String, index: index_spec) -> create_index_op
+      def self?.drop_index: (name: String) -> drop_index_op
+      def self?.migration: (version: Integer, slug: String, up: Array[operation], down: Array[operation], ?policy: migration_policy?) -> migration
+    end
+  end
+end

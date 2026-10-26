@@ -1,0 +1,26 @@
+# RBS signatures for `client.query`, `client.search` and the select builder's search methods.
+
+module K9o
+  module Query
+    type value = String | Integer | Float | bool | nil
+
+    # Rewrites :name placeholders to $n; returns [sql, positional values].
+    def self.translate_named_params: (String sql, Hash[(String | Symbol), untyped] named) -> [String, Array[value]]
+  end
+
+  module QueryMethods
+    # An Array binds positionally to $1, $2, ...; a Hash binds :name placeholders. `data` is the array of rows.
+    def query: (String sql, ?(Array[untyped] | Hash[(String | Symbol), untyped])? params) -> Envelope
+
+    def search: (String collection, column: String, q: String, ?language: String?, ?type: String?, ?limit: Integer?, ?cursor: String?) -> Envelope
+  end
+
+  class K9oClient
+    include QueryMethods
+  end
+
+  class SelectBuilder
+    def text_search: (String column, String query, ?language: String, ?type: (String | Symbol)) -> self
+    def vector_search: (String column, Array[Numeric] embedding, ?metric: (String | Symbol), ?limit: Integer?) -> self
+  end
+end

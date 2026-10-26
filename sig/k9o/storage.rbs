@@ -1,0 +1,41 @@
+# RBS signatures for the `client.storage` namespace (buckets and objects).
+
+module K9o
+  module Multipart
+    type part = { name: String, value: untyped, ?filename: String, ?content_type: String }
+    def self.encode: (Array[part] parts) -> [String, String]
+  end
+
+  class Storage
+    MAX_EXPIRES_IN: Integer
+
+    def initialize: (untyped config) -> void
+    def list_buckets: () -> Envelope
+    def get_bucket: (String name) -> Envelope
+    def create_bucket: (String name, ?public: bool?, ?file_size_limit: Integer?, ?allowed_mime_types: Array[String]?,
+                        ?versioning: bool?, ?delete_after_days: Integer?, ?byos_binding_id: String?) -> Envelope
+    # `patch` keys: snake_case or wire camelCase; an explicit nil clears a limit.
+    def update_bucket: (String name, Hash[(String | Symbol), untyped] patch) -> Envelope
+    def delete_bucket: (String name, ?empty: bool) -> Envelope
+    def from: (String bucket) -> BucketHandle
+
+    class BucketHandle
+      def initialize: (untyped config, String bucket) -> void
+      # `data` is a String (sent as its bytes) or an IO-like responding to #read.
+      def upload: (String path, (String | _Reader) data, ?content_type: String?, ?upsert: bool,
+                   ?metadata: Hash[String, String]?) -> Envelope
+      # `expires_in` is required: Integer 1..604800 (K9O_INVALID_FIELD_VALUE otherwise).
+      def create_signed_url: (String path, expires_in: Integer, ?download: bool?) -> Envelope
+      def list: (?prefix: String?) -> Envelope
+      def remove: (String path) -> Envelope
+    end
+
+    interface _Reader
+      def read: () -> String
+    end
+  end
+
+  class K9oClient
+    attr_reader storage: Storage
+  end
+end

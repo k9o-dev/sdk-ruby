@@ -1,0 +1,49 @@
+# RBS signatures for `client.approvals`, `client.approval_policies` and `client.schema`.
+
+module K9o
+  module ApprovalChecks
+    def self.invalid: (String message, ?Hash[Symbol, untyped] context) -> KError
+    def self.check_limit: (untyped limit) -> void
+    def self.id_segment: (untyped value, String what) -> String
+    def self.reason!: (untyped reason) -> String
+    def self.predicate!: (untyped value, String field) -> Hash[untyped, untyped]
+    def self.enum!: (untyped value, Array[String] allowed, String field) -> String
+  end
+
+  class Approvals
+    def initialize: (untyped config) -> void
+    # Not paginated: only `limit` (1 to 200, default 50) caps the result.
+    def list: (?status: (String | Symbol)?, ?limit: Integer?) -> Envelope
+    def get: (String id) -> Envelope
+    # `status` on the answer stays "pending_approval" while more approvers are needed.
+    def approve: (String id, ?reason: String?) -> Envelope
+    def reject: (String id, reason: String) -> Envelope
+    # Failed rows are skipped without a report: compare `affectedIds` with what you intended.
+    def bulk: (action: (String | Symbol), criteria: Hash[(String | Symbol), untyped], ?reason: String?) -> Envelope
+  end
+
+  class ApprovalPolicies
+    COLLECTION_RE: Regexp
+
+    def initialize: (untyped config) -> void
+    def list: () -> Envelope
+    def create: (collection: String, operation: (String | Symbol), action: (String | Symbol), predicate: Hash[(String | Symbol), untyped]) -> Envelope
+    def delete: (String id) -> Envelope
+  end
+
+  class SchemaCollections
+    def initialize: (untyped config) -> void
+    def list: (?limit: Integer?, ?cursor: String?) -> Envelope
+  end
+
+  class Schema
+    attr_reader collections: SchemaCollections
+    def initialize: (untyped config) -> void
+  end
+
+  class K9oClient
+    attr_reader approvals: Approvals
+    attr_reader approval_policies: ApprovalPolicies
+    attr_reader schema: Schema
+  end
+end
