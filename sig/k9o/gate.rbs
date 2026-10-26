@@ -1,0 +1,12 @@
+# RBS signatures for the `client.gate` namespace.
+
+module K9o
+  class Gate
+    def sign_up: (email: String, password: String, ?display_name: String?) -> Envelope
+    def sign_in: (email: String, password: String) -> Envelope
+    # The refresh token is required: the gateway answers 400 without it.
+    def sign_out: (refresh_token: String) -> Envelope
+    def whoami: () -> Envelope
+    def refresh_token: (refresh_token: String) -> Envelope
+  end
+end

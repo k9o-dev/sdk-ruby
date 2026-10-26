@@ -1,0 +1,14 @@
+*.gem
+Gemfile.lock
+.bundle/
+vendor/
+
+# kibo ZK native binding + lib (CI-injected per platform from the kibo artifact bundle)
+lib/k9o/_ffi/kibo_kms_rest_ffi.rb
+lib/k9o/_ffi/*.dylib
+lib/k9o/_ffi/*.so
+lib/k9o/_ffi/*.bundle
+lib/k9o/_ffi/*.dll
+
+# barbican guardrail native binding + lib (CI-injected per platform, same convention)
+lib/k9o/_ffi/k9o_keep_core_ffi_uniffi.rb

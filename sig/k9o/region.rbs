@@ -1,0 +1,30 @@
+# RBS signatures for regional host resolution (K9o::Region).
+
+module K9o
+  module Region
+    # The regional origin `location` may name for `host`, or nil.
+    def self.origin_from_location: (String host, String location, String base) -> String?
+    # The origin requests go to: cached regional origin, else the configured base URL. Never raises.
+    def self.resolve_origin: (HttpClientConfig config) -> String
+    def self.probe: (HttpClientConfig config) -> [String, bool]
+  end
+
+  class HttpClientConfig
+    attr_reader region_mutex: Thread::Mutex
+    attr_accessor regional_origin: String?
+  end
+end
+
+module K9o
+  module UrlGrammar
+    # The org, family, region and apex of a gateway host (`acme.api-de01.corp.internal`), or nil for any other shape.
+    class ApiHost < Struct[untyped]
+      attr_reader org_slug: String?
+      attr_reader family: String
+      attr_reader region: String?
+      attr_reader apex: String
+    end
+
+    def self.parse_api_host: (String host) -> ApiHost?
+  end
+end
